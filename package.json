@@ -1,0 +1,34 @@
+{
+  "name": "create-pdf-bot",
+  "version": "1.0.0",
+  "description": "Telegram bot for creating pdfs from images",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Rhymmor/create-pdf-bot.git"
+  },
+  "keywords": [
+    "telegram",
+    "bot",
+    "pdf"
+  ],
+  "author": "Rhymmor",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Rhymmor/create-pdf-bot/issues"
+  },
+  "homepage": "https://github.com/Rhymmor/create-pdf-bot#readme",
+  "devDependencies": {
+    "@types/node-telegram-bot-api": "^0.28.2",
+    "@types/pdfkit": "^0.7.36",
+    "ts-node": "^4.1.0",
+    "typescript": "^2.6.2"
+  },
+  "dependencies": {
+    "node-telegram-bot-api": "^0.30.0",
+    "pdfkit": "^0.8.3"
+  }
+}
