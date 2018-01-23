@@ -1,15 +1,13 @@
-import * as TelegramBot from 'node-telegram-bot-api';
+
+const TelegramBot = require('telegraf');
 import { Readable } from 'stream';
 import * as PdfKit from 'pdfkit';
 import * as fs from 'fs';
-
-interface ExtendedTelegramBot extends TelegramBot {
-    on(event: "photo", listener: (msg: TelegramBot.Message) => void): this;
-    getFileStream(fileid: string, options?: any): Readable;
-}
+import axios from 'axios';
 
 const token_env = 'BOT_TOKEN';
 const token = process.env[token_env];
+// A4 size. TODO: support more pdf sizes
 const width = 595;
 const height = 842;
 
@@ -17,36 +15,105 @@ if (!token) {
     throw `Please, initialize ${token_env} environment variable`;
 }
 
-const bot = new TelegramBot(token, {polling: true}) as ExtendedTelegramBot;
+class CreatePdfBot {
+    private bot: any;
+    private media: Promise<Buffer>[];
 
-bot.onText(/\/start/, msg => {
-    //TODO: replace with logger
-    console.log(msg);
-})
-
-bot.on('photo', async msg => {
-    if (!msg.photo) {
-        console.log('No message info');
+    constructor(token: string) {
+        this.media = [];
+        this.bot = new TelegramBot(token);
+        this.bot.on('photo', this.handlePhotoMsg);
+        this.bot.command('end', this.handleEndCommand);
+        this.bot.command('start', this.handleStartCommand);
+        this.bot.on('edited_message', msg => {
+            console.log('was edited');
+            console.log(msg);
+        })
     }
-    const stream = bot.getFileStream(msg.photo[msg.photo.length - 1].file_id);
-    let buffer: Buffer;
-    stream.on('data', chunk => {
-        console.log(chunk);
-        if (Buffer.isBuffer(chunk)) {
-            if (!buffer) {
-                buffer = chunk;
-            } else {
-                buffer = Buffer.concat([buffer, chunk]);
-            }
+
+    public start() {
+        this.bot.startPolling();
+    }
+
+    private handleStartCommand = (ctx: any) => {
+        //TODO: replace with logger
+        console.log(ctx);
+    }
+
+    private handlePhotoMsg = async (ctx: any) => {
+        if (!ctx.update.message.photo) {
+            console.log('No message info');
+            return;
         }
-    });
-    stream.on('end', () => {
-        console.log('end');
-        const doc = new PdfKit({layout: 'portrait', size: [width, height]});
-        console.log(process.cwd() + '/example.pdf');
-        doc.pipe(fs.createWriteStream(process.cwd() + '/example.pdf'));
-        doc.image(buffer, 0, 0, {width, height});
-        doc.end();
-    });
-    console.log(msg);
-})
+        const link = await this.bot.telegram.getFileLink(this.getLastPhotoId(ctx));
+        this.media.push(this.downloadPhoto(link));
+    }
+
+    private downloadPhoto(link: string) {
+        return new Promise<Buffer>((resolve, reject) => {
+            axios
+                .get(link, { responseType: 'arraybuffer' })
+                .then(res => {
+                    resolve(new Buffer(res.data, 'binary'));
+                })
+                .catch(reject);
+        });
+    }
+
+    private streamPhoto = (id: string): Promise<Buffer> => {
+        return new Promise<Buffer>((resolve, reject) => {
+            let buffer: Buffer;
+            const stream = this.bot.getFileStream(id);
+            stream.on('error', err => {
+                console.error('stream error.', err);
+                reject();
+            })
+            stream.on('end', () => resolve(buffer));
+            // TODO: save buffer to file, not to memory
+            stream.on('data', chunk => {
+                if (Buffer.isBuffer(chunk)) {
+                    buffer = buffer ? Buffer.concat([buffer, chunk]) : chunk;
+                }
+            });
+        });
+    }
+
+    private getLastPhotoId = (ctx: any): string => {
+        //TODO: give an option to choose photo quality
+        return ctx.update.message.photo[ctx.update.message.photo.length - 1].file_id;
+    }
+
+    private handleEndCommand = async (ctx: any) => {
+        const photos = await Promise.all(this.media);
+        const pdf = this.createPdf(photos);
+        ctx.replyWithDocument({source: pdf, filename: 'images.pdf'})
+    }
+
+    private createPdf = (photos: Buffer[]) => {
+        const pdf = new PdfKit({layout: 'portrait', size: [width, height]});
+        // TODO: remove hardcoded name
+        const pdfPath = process.cwd() + '/images.pdf';
+
+        pdf.pipe(fs.createWriteStream(pdfPath));
+        this.addPhotosToPdf(pdf, photos);
+        pdf.end();
+
+        return pdfPath;
+    }
+
+    private addPhotosToPdf(pdf: PDFKit.PDFDocument, photos: Buffer[]) {
+        let photo: Buffer = photos.shift();
+        pdf.image(photo, 0, 0, {width, height});
+        while (photo = photos.shift()) {
+            pdf.addPage();
+            pdf.image(photo, 0, 0, {width, height});
+        }
+    }
+}
+
+const bot = new CreatePdfBot(token);
+try {
+    bot.start();
+} catch (e) {
+    console.error(e);
+}
