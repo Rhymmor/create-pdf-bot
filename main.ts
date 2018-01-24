@@ -24,20 +24,10 @@ class CreatePdfBot {
         this.bot = new TelegramBot(token);
         this.bot.on('photo', this.handlePhotoMsg);
         this.bot.command('end', this.handleEndCommand);
-        this.bot.command('start', this.handleStartCommand);
-        this.bot.on('edited_message', msg => {
-            console.log('was edited');
-            console.log(msg);
-        })
     }
 
     public start() {
         this.bot.startPolling();
-    }
-
-    private handleStartCommand = (ctx: any) => {
-        //TODO: replace with logger
-        console.log(ctx);
     }
 
     private handlePhotoMsg = async (ctx: any) => {
@@ -57,24 +47,6 @@ class CreatePdfBot {
                     resolve(new Buffer(res.data, 'binary'));
                 })
                 .catch(reject);
-        });
-    }
-
-    private streamPhoto = (id: string): Promise<Buffer> => {
-        return new Promise<Buffer>((resolve, reject) => {
-            let buffer: Buffer;
-            const stream = this.bot.getFileStream(id);
-            stream.on('error', err => {
-                console.error('stream error.', err);
-                reject();
-            })
-            stream.on('end', () => resolve(buffer));
-            // TODO: save buffer to file, not to memory
-            stream.on('data', chunk => {
-                if (Buffer.isBuffer(chunk)) {
-                    buffer = buffer ? Buffer.concat([buffer, chunk]) : chunk;
-                }
-            });
         });
     }
 
