@@ -10,3 +10,10 @@ export function downloadBinary(link: string) {
             .catch(reject);
     });
 }
+
+export function deleteItem<T>(arr: T[], item: T) {
+    const idx = arr.indexOf(item);
+    if (idx !== -1) {
+        arr.splice(idx, 1);
+    }
+}
