@@ -1,7 +1,6 @@
 import * as path from 'path';
 import * as PdfKit from 'pdfkit';
 import * as fs from 'fs';
-import { TmpDirsWatcher } from './tmpDirs';
 import { logger } from './logger';
 
 // A4 size. TODO: support more pdf sizes
@@ -10,31 +9,29 @@ const height = 842;
 
 export class PdfCreator {
     private defaultName: string;
-    private dirsWatcher: TmpDirsWatcher;
 
     constructor(defaultName: string) {
         this.defaultName = defaultName;
-        this.dirsWatcher = new TmpDirsWatcher();
     }
 
-    create = async (id: string, photos: Buffer[]) => {
-        logger.info(`Creating pdf for id ${id}`);
-        const pdfDir = await this.dirsWatcher.prepareIdDir(id);
-        const pdf = new PdfKit({layout: 'portrait', size: [width, height]});
-        const pdfPath = path.join(pdfDir, this.defaultName);
-        pdf.pipe(fs.createWriteStream(pdfPath));
-        this.addPhotosToPdf(pdf, photos);
-        pdf.end();
-
-        logger.info(`Created pdf for id ${id}: ${pdfPath}`);
-        return pdfPath;
+    create = (dir: string, photos: string[]) => {
+        return new Promise<string>(async (resolve, _reject) => {
+            logger.info(`Creating pdf in directory ${dir}`);
+            const pdf = new PdfKit({layout: 'portrait', size: [width, height]});
+            const pdfPath = path.join(dir, this.defaultName);
+    
+            const stream = fs.createWriteStream(pdfPath);
+            stream.on('finish', () => {
+                logger.info(`Created pdf in directory ${dir}: ${pdfPath}`);
+                resolve(pdfPath);
+            });
+            pdf.pipe(stream);
+            this.addPhotosToPdf(pdf, photos);
+            pdf.end();
+        })
     }
 
-    clean(id: string) {
-        this.dirsWatcher.clean(id);
-    }
-
-    private addPhotosToPdf(pdf: PDFKit.PDFDocument, photos: Buffer[]) {
+    private addPhotosToPdf(pdf: PDFKit.PDFDocument, photos: string[]) {
         let photo = photos.shift();
         pdf.image(photo, 0, 0, {width, height});
         while (photo = photos.shift()) {
