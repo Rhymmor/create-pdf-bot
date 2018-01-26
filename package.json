@@ -2,8 +2,9 @@
   "name": "create-pdf-bot",
   "version": "1.0.0",
   "description": "Telegram bot for creating pdfs from images",
-  "main": "index.js",
+  "main": "app/main.js",
   "scripts": {
+    "compile": "tsc",
     "dev": "ts-node src/main.ts | bunyan -o short",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -14,7 +15,10 @@
   "keywords": [
     "telegram",
     "bot",
-    "pdf"
+    "pdf",
+    "images-to-pdf",
+    "jpg-to-pdf",
+    "pdf-to-pdf"
   ],
   "author": "Rhymmor",
   "license": "MIT",
