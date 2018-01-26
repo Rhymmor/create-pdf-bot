@@ -1,19 +1,26 @@
 import axios from 'axios';
+import { createWriteStream } from 'fs';
 
-export function downloadBinary(link: string) {
-    return new Promise<Buffer>((resolve, reject) => {
+
+export function downloadToFile(link: string, path: string) {
+    return new Promise<string>((resolve, reject) => {
         axios
-            .get(link, { responseType: 'arraybuffer' })
+            .get(link, { responseType: 'stream' })
             .then(res => {
-                resolve(new Buffer(res.data, 'binary'));
+                res.data.on('end', () => {
+                    resolve(path);
+                })
+                res.data.pipe(createWriteStream(path));
+                // resolve(new Buffer(res.data, 'binary'));
             })
             .catch(reject);
     });
 }
 
-export function deleteItem<T>(arr: T[], item: T) {
+export function deleteItem<T>(arr: T[], item: T): T[] {
     const idx = arr.indexOf(item);
     if (idx !== -1) {
-        arr.splice(idx, 1);
+        return arr.slice(0, idx).concat(arr.slice(idx + 1));
     }
+    return arr;
 }
