@@ -1,15 +1,14 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { deleteItem } from './utils';
 import * as rimraf from 'rimraf';
 import { logger } from './logger';
 
 export class TmpDirsWatcher {
-    private activeIds: string[];
+    private activeIds: Set<string>;
     private static TMP_DIR = '/tmp/create-pdf-bot';
 
     constructor() {
-        this.activeIds = [];
+        this.activeIds = new Set();
     }
 
     private isDir(dir: string): Promise<boolean> {
@@ -53,33 +52,40 @@ export class TmpDirsWatcher {
         })
     }
 
-    private getIdTmpDir(id: string) {
+    getIdTmpDir = (id: string) => {
         return path.join(TmpDirsWatcher.TMP_DIR, id);
     }
 
-    prepareIdDir = async (id: string) => {
-        logger.info(`Creating directory for id ${id}`);
+    public prepareIdDir = async (id: string) => {
+        logger.warn(`Creating directory for id ${id}`);
         await this.tryCreateDir(TmpDirsWatcher.TMP_DIR);
         const tmpDir = this.getIdTmpDir(id);
         await this.tryCreateDir(tmpDir);
-        this.activeIds.push(id);
-
-        logger.info(`Created ${tmpDir} directory`);
+        this.activeIds.add(id);
         return tmpDir;
     }
 
-    clean = async (id: string) => {
+    public clean = async (id: string) => {
         try {
-            logger.info(`Deleting directory for id ${id}`);
+            logger.warn(`Deleting directory for id ${id}`);
             const tmpDir = this.getIdTmpDir(id);
             await this.tryRemoveDir(tmpDir);
-            deleteItem(this.activeIds, id);
-
-            logger.info(`Deleted ${tmpDir} directory`);
+            this.activeIds.delete(id);
+            logger.warn(`Deleted ${tmpDir} directory`);
             return true;
         } catch (e) {
             logger.error(e);
             return false;
         }
+    }
+
+    public isIdActive = (id: string) => {
+        return this.activeIds.has(id);
+    }
+
+    public cleanAll = async () => {
+        logger.warn(`Deleting directory ${TmpDirsWatcher.TMP_DIR}`);
+        await this.tryRemoveDir(TmpDirsWatcher.TMP_DIR);
+        logger.warn(`Deleted ${TmpDirsWatcher.TMP_DIR} directory`);
     }
 }
