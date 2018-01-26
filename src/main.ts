@@ -1,4 +1,5 @@
 import { CreatePdfBot } from "./bot";
+import { logger } from "./logger";
 
 process.on('unhandledRejection', up => { throw up });
 
@@ -12,6 +13,7 @@ if (!token) {
 const bot = new CreatePdfBot(token);
 try {
     bot.start();
+    logger.info('Started bot');
 } catch (e) {
-    console.error(e);
+    logger.error(e);
 }

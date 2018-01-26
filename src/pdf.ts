@@ -2,6 +2,7 @@ import * as path from 'path';
 import * as PdfKit from 'pdfkit';
 import * as fs from 'fs';
 import { TmpDirsWatcher } from './tmpDirs';
+import { logger } from './logger';
 
 // A4 size. TODO: support more pdf sizes
 const width = 595;
@@ -17,7 +18,7 @@ export class PdfCreator {
     }
 
     create = async (id: string, photos: Buffer[]) => {
-        console.log(`Creating pdf for id ${id}`);
+        logger.info(`Creating pdf for id ${id}`);
         const pdfDir = await this.dirsWatcher.prepareIdDir(id);
         const pdf = new PdfKit({layout: 'portrait', size: [width, height]});
         const pdfPath = path.join(pdfDir, this.defaultName);
@@ -25,7 +26,7 @@ export class PdfCreator {
         this.addPhotosToPdf(pdf, photos);
         pdf.end();
 
-        console.log(`Created pdf for id ${id}: ${pdfPath}`);
+        logger.info(`Created pdf for id ${id}: ${pdfPath}`);
         return pdfPath;
     }
 

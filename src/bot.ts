@@ -2,6 +2,7 @@ const TelegramBot = require('telegraf');
 const Markup = require('telegraf/markup');
 import { PdfCreator } from './pdf';
 import { downloadBinary } from './utils';
+import { logger } from './logger';
 
 export class CreatePdfBot {
     private static CREATE_LABEL: string = '✅ Create';
@@ -31,7 +32,7 @@ export class CreatePdfBot {
 
     private handlePhotoMsg = async (ctx: any) => {
         if (!ctx.update.message.photo) {
-            console.log('No message info');
+            logger.error('No message info', ctx.update);
             return;
         }
         const link = await this.bot.telegram.getFileLink(this.getLastPhotoId(ctx));

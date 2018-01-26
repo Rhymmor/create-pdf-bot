@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { deleteItem } from './utils';
 import * as rimraf from 'rimraf';
+import { logger } from './logger';
 
 export class TmpDirsWatcher {
     private activeIds: string[];
@@ -18,7 +19,7 @@ export class TmpDirsWatcher {
                     if (err.code === 'ENOENT') {
                         return resolve(false);
                     }
-                    console.error(err);
+                    logger.error(err);
                     return reject(err);
                 }
                 return resolve(stats.isDirectory());
@@ -32,7 +33,7 @@ export class TmpDirsWatcher {
     
             fs.mkdir(dir, err => {
                 if (err) { 
-                    console.error(err);
+                    logger.error(err);
                     return reject(err); 
                 }
                 resolve();
@@ -43,7 +44,10 @@ export class TmpDirsWatcher {
     private tryRemoveDir(dir: string) {
         return new Promise<void>(async (resolve, reject) => {
             rimraf(dir, err => {
-                if (err) { return reject(err); }
+                if (err) { 
+                    logger.error(err);
+                    return reject(err); 
+                }
                 resolve();
             })
         })
@@ -54,29 +58,27 @@ export class TmpDirsWatcher {
     }
 
     prepareIdDir = async (id: string) => {
-        console.log(`Creating directory for id ${id}`);
+        logger.info(`Creating directory for id ${id}`);
         await this.tryCreateDir(TmpDirsWatcher.TMP_DIR);
         const tmpDir = this.getIdTmpDir(id);
         await this.tryCreateDir(tmpDir);
         this.activeIds.push(id);
 
-        console.log(`Created ${tmpDir} directory`);
+        logger.info(`Created ${tmpDir} directory`);
         return tmpDir;
     }
 
-
-
     clean = async (id: string) => {
         try {
-            console.log(`Deleting directory for id ${id}`);
+            logger.info(`Deleting directory for id ${id}`);
             const tmpDir = this.getIdTmpDir(id);
             await this.tryRemoveDir(tmpDir);
             deleteItem(this.activeIds, id);
 
-            console.log(`Deleted ${tmpDir} directory`);
+            logger.info(`Deleted ${tmpDir} directory`);
             return true;
         } catch (e) {
-            console.error(e);
+            logger.error(e);
             return false;
         }
     }
