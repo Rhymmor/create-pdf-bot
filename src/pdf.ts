@@ -2,10 +2,24 @@ import * as path from 'path';
 import * as PdfKit from 'pdfkit';
 import * as fs from 'fs';
 import { logger } from './logger';
+import { ImageEntity } from './image';
+import { UseString, maxBy } from './utils';
 
-// A4 size. TODO: support more pdf sizes
-const width = 595;
-const height = 842;
+export enum PdfSize {
+    A4 = "A4",
+    Auto = "Auto"
+}
+
+interface Size {
+    width: number;
+    height: number;
+}
+
+const PdfSizePx: UseString<PdfSize, Size> = {
+    A4: { width: 595, height: 842 },
+    Auto: { width: 0, height: 0 }
+};
+
 
 export class PdfCreator {
     private defaultName: string;
@@ -14,10 +28,24 @@ export class PdfCreator {
         this.defaultName = defaultName;
     }
 
-    create = (dir: string, photos: string[]) => {
+    private getSize(type: PdfSize, photos: ImageEntity[]): Size {
+        if (type !== PdfSize.Auto) {
+            return PdfSizePx[type];
+        }
+        const maxSize = maxBy(photos, x => x.height);
+        if (!maxSize) {
+            logger.error(`Error while trying to get max size of photos`, photos);
+            return PdfSizePx.A4;
+        }
+        return {height: maxSize.height, width: maxSize.width};
+    }
+
+    create = (type: PdfSize, dir: string, photos: ImageEntity[]) => {
+        console.log(photos);
         return new Promise<string>(async (resolve, _reject) => {
             logger.info(`Creating pdf in directory ${dir}`);
-            const pdf = new PdfKit({layout: 'portrait', size: [width, height]});
+            const size = this.getSize(type, photos);
+            const pdf = new PdfKit({layout: 'portrait', size: [size.width, size.height]});
             const pdfPath = path.join(dir, this.defaultName);
     
             const stream = fs.createWriteStream(pdfPath);
@@ -26,17 +54,19 @@ export class PdfCreator {
                 resolve(pdfPath);
             });
             pdf.pipe(stream);
-            this.addPhotosToPdf(pdf, photos);
+            await this.addPhotosToPdf(pdf, photos, size);
             pdf.end();
         })
     }
 
-    private addPhotosToPdf(pdf: PDFKit.PDFDocument, photos: string[]) {
+    private async addPhotosToPdf(pdf: PDFKit.PDFDocument, photos: ImageEntity[], size: Size) {
         let photo = photos.shift();
-        pdf.image(photo, 0, 0, {width, height});
+        if (!photo) { return };
+
+        pdf.image(photo.path, 0, 0, size);
         while (photo = photos.shift()) {
             pdf.addPage();
-            pdf.image(photo, 0, 0, {width, height});
+            pdf.image(photo.path, 0, 0, size);
         }
     }
 }

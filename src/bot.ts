@@ -1,17 +1,17 @@
 const TelegramBot = require('telegraf');
 const Markup = require('telegraf/markup');
-import { PdfCreator } from './pdf';
-import { downloadToFile } from './utils';
+import { PdfCreator, PdfSize } from './pdf';
 import { logger } from './logger';
 import { TmpDirsWatcher } from './tmpDirs';
 import {generate as generateId} from 'shortid';
 import * as path from 'path';
+import { processImage, ImageEntity } from './image';
 
 export class CreatePdfBot {
     private static CREATE_LABEL: string = '✅ Create';
     private static PDF_NAME = 'images.pdf';
     private bot: any;
-    private media: Promise<string>[];
+    private media: Promise<ImageEntity>[];
     private pdfCreator: PdfCreator;
     private dirsWatcher: TmpDirsWatcher;
 
@@ -48,7 +48,7 @@ export class CreatePdfBot {
             ? this.dirsWatcher.getIdTmpDir(id)
             : await this.dirsWatcher.prepareIdDir(id);
         const filepath = path.join(dir, generateId());
-        this.media.push(downloadToFile(link, filepath));
+        this.media.push(processImage(link, filepath));
 
         return ctx.reply('a', Markup
             .keyboard([[CreatePdfBot.CREATE_LABEL]])
@@ -70,17 +70,9 @@ export class CreatePdfBot {
     private handleEndCommand = async (ctx: any) => {
         const images = await Promise.all(this.media);
         const id = this.getUserId(ctx);
-        const pdf = await this.pdfCreator.create(id, images);
+        const pdf = await this.pdfCreator.create(PdfSize.A4, this.dirsWatcher.getIdTmpDir(id), images);
         ctx.replyWithDocument({source: pdf, filename: CreatePdfBot.PDF_NAME});
         this.clean(id);
-    }
-
-    private clean(id: string) {
-        this.dirsWatcher.clean(id);
-    }
-
-    public cleanup() {
-        return this.dirsWatcher.cleanAll();
     }
 
     private handleStartCommand = (ctx: any) => {
@@ -89,6 +81,14 @@ export class CreatePdfBot {
 
     private handleHelpCommand = (ctx: any) => {
         return ctx.reply(this.showHelp());
+    }
+
+    private clean(id: string) {
+        this.dirsWatcher.clean(id);
+    }
+
+    public cleanup() {
+        return this.dirsWatcher.cleanAll();
     }
 
     private showHelp() {
