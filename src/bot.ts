@@ -1,9 +1,5 @@
 const TelegramBot = require('telegraf');
 const Markup = require('telegraf/markup');
-import { Readable } from 'stream';
-import * as PdfKit from 'pdfkit';
-import * as fs from 'fs';
-import * as path from 'path';
 import { PdfCreator } from './pdf';
 import { downloadBinary } from './utils';
 

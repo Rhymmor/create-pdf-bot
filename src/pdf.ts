@@ -24,7 +24,7 @@ export class PdfCreator {
     }
 
     private addPhotosToPdf(pdf: PDFKit.PDFDocument, photos: Buffer[]) {
-        let photo: Buffer = photos.shift();
+        let photo = photos.shift();
         pdf.image(photo, 0, 0, {width, height});
         while (photo = photos.shift()) {
             pdf.addPage();
