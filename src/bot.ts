@@ -7,6 +7,11 @@ import {generate as generateId} from 'shortid';
 import * as path from 'path';
 import { processImage, ImageEntity } from './image';
 
+enum FileTypes {
+    Photo = 'photo',
+    Document = 'document'
+};
+
 export class CreatePdfBot {
     private static CREATE_LABEL: string = '✅ Create';
     private static PDF_NAME = 'images.pdf';
@@ -21,7 +26,8 @@ export class CreatePdfBot {
         this.dirsWatcher = new TmpDirsWatcher();
 
         this.bot = new TelegramBot(token);
-        this.bot.on('photo', this.handlePhotoMsg);
+        this.bot.on(FileTypes.Photo, this.handleFileMsg(FileTypes.Photo));
+        this.bot.on(FileTypes.Document, this.handleFileMsg(FileTypes.Document));
         this.bot.command('start', this.handleStartCommand);
         this.bot.command('help', this.handleHelpCommand);
         this.bot.command('end', this.handleEndCommand);
@@ -36,12 +42,12 @@ export class CreatePdfBot {
         this.bot.startPolling();
     }
 
-    private handlePhotoMsg = async (ctx: any) => {
-        if (!ctx.update.message.photo) {
-            logger.error('No message info', ctx.update);
+    private handleFileMsg = (type: FileTypes) => async (ctx: any) => {
+        if (!ctx.update.message[type]) {
+            logger.error('No message info.', type, ctx.update);
             return;
         }
-        const link = await this.bot.telegram.getFileLink(this.getLastPhotoId(ctx));
+        const link = await this.bot.telegram.getFileLink(this.getLastFileId(ctx, type));
 
         const id = this.getUserId(ctx);
         const dir = this.dirsWatcher.isIdActive(id)
@@ -64,9 +70,13 @@ export class CreatePdfBot {
         );
     }
 
-    private getLastPhotoId = (ctx: any): string => {
+    private getLastFileId = (ctx: any, type: FileTypes): string => {
         //TODO: give an option to choose photo quality
-        return ctx.update.message.photo[ctx.update.message.photo.length - 1].file_id;
+        if (type === FileTypes.Photo) {
+            return ctx.update.message[type][ctx.update.message[type].length - 1].file_id;
+        }
+        // Check file mime type (ctx.update.message.mime_type)
+        return ctx.update.message[type].file_id;
     }
 
     private getUserId = (ctx: any): string => {
