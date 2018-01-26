@@ -41,7 +41,6 @@ export class PdfCreator {
     }
 
     create = (type: PdfSize, dir: string, photos: ImageEntity[]) => {
-        console.log(photos);
         return new Promise<string>(async (resolve, _reject) => {
             logger.info(`Creating pdf in directory ${dir}`);
             const size = this.getSize(type, photos);

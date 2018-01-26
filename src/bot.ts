@@ -11,12 +11,12 @@ export class CreatePdfBot {
     private static CREATE_LABEL: string = '✅ Create';
     private static PDF_NAME = 'images.pdf';
     private bot: any;
-    private media: Promise<ImageEntity>[];
+    private media: Map<string, Promise<ImageEntity>[]>; // store info about processing images per user
     private pdfCreator: PdfCreator;
     private dirsWatcher: TmpDirsWatcher;
 
     constructor(token: string) {
-        this.media = [];
+        this.media = new Map();
         this.pdfCreator = new PdfCreator(CreatePdfBot.PDF_NAME);
         this.dirsWatcher = new TmpDirsWatcher();
 
@@ -48,7 +48,13 @@ export class CreatePdfBot {
             ? this.dirsWatcher.getIdTmpDir(id)
             : await this.dirsWatcher.prepareIdDir(id);
         const filepath = path.join(dir, generateId());
-        this.media.push(processImage(link, filepath));
+
+        const promiseImage = processImage(link, filepath);
+        if (this.media.has(id)) {
+            this.media.get(id)!.push(promiseImage);
+        } else {
+            this.media.set(id, [promiseImage]);
+        }
 
         return ctx.reply('a', Markup
             .keyboard([[CreatePdfBot.CREATE_LABEL]])
@@ -68,10 +74,14 @@ export class CreatePdfBot {
     }
 
     private handleEndCommand = async (ctx: any) => {
-        const images = await Promise.all(this.media);
         const id = this.getUserId(ctx);
-        const pdf = await this.pdfCreator.create(PdfSize.A4, this.dirsWatcher.getIdTmpDir(id), images);
-        ctx.replyWithDocument({source: pdf, filename: CreatePdfBot.PDF_NAME});
+        if (this.media.has(id)) {
+            const images = await Promise.all(this.media.get(id)!);
+            const pdf = await this.pdfCreator.create(PdfSize.A4, this.dirsWatcher.getIdTmpDir(id), images);
+            ctx.replyWithDocument({source: pdf, filename: CreatePdfBot.PDF_NAME});
+        } else {
+            logger.error(`No media member for id ${id}.`, this.media);
+        }
         this.clean(id);
     }
 
@@ -84,6 +94,7 @@ export class CreatePdfBot {
     }
 
     private clean(id: string) {
+        this.media.delete(id);
         this.dirsWatcher.clean(id);
     }
 
