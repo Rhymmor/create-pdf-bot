@@ -1,19 +1,24 @@
 const TelegramBot = require('telegraf');
 const Markup = require('telegraf/markup');
 import { PdfCreator } from './pdf';
-import { downloadBinary } from './utils';
+import { downloadToFile } from './utils';
 import { logger } from './logger';
+import { TmpDirsWatcher } from './tmpDirs';
+import {generate as generateId} from 'shortid';
+import * as path from 'path';
 
 export class CreatePdfBot {
     private static CREATE_LABEL: string = '✅ Create';
     private static PDF_NAME = 'images.pdf';
     private bot: any;
-    private media: Promise<Buffer>[];
+    private media: Promise<string>[];
     private pdfCreator: PdfCreator;
+    private dirsWatcher: TmpDirsWatcher;
 
     constructor(token: string) {
         this.media = [];
         this.pdfCreator = new PdfCreator(CreatePdfBot.PDF_NAME);
+        this.dirsWatcher = new TmpDirsWatcher();
 
         this.bot = new TelegramBot(token);
         this.bot.on('photo', this.handlePhotoMsg);
@@ -27,6 +32,7 @@ export class CreatePdfBot {
     }
 
     public start() {
+        this.bot.catch(logger.error);
         this.bot.startPolling();
     }
 
@@ -36,7 +42,14 @@ export class CreatePdfBot {
             return;
         }
         const link = await this.bot.telegram.getFileLink(this.getLastPhotoId(ctx));
-        this.media.push(downloadBinary(link));
+
+        const id = this.getUserId(ctx);
+        const dir = this.dirsWatcher.isIdActive(id)
+            ? this.dirsWatcher.getIdTmpDir(id)
+            : await this.dirsWatcher.prepareIdDir(id);
+        const filepath = path.join(dir, generateId());
+        this.media.push(downloadToFile(link, filepath));
+
         return ctx.reply('a', Markup
             .keyboard([[CreatePdfBot.CREATE_LABEL]])
             .oneTime()
@@ -59,7 +72,15 @@ export class CreatePdfBot {
         const id = this.getUserId(ctx);
         const pdf = await this.pdfCreator.create(id, images);
         ctx.replyWithDocument({source: pdf, filename: CreatePdfBot.PDF_NAME});
-        this.pdfCreator.clean(id);
+        this.clean(id);
+    }
+
+    private clean(id: string) {
+        this.dirsWatcher.clean(id);
+    }
+
+    public cleanup() {
+        return this.dirsWatcher.cleanAll();
     }
 
     private handleStartCommand = (ctx: any) => {
