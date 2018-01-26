@@ -1,5 +1,7 @@
 import { CreatePdfBot } from "./bot";
 
+process.on('unhandledRejection', up => { throw up });
+
 const token_env = 'BOT_TOKEN';
 const token = process.env[token_env];
 
