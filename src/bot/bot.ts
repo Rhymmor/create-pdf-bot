@@ -1,11 +1,14 @@
 const TelegramBot = require('telegraf');
 const Markup = require('telegraf/markup');
-import { PdfCreator, PdfSize } from './pdf';
-import { logger } from './logger';
-import { TmpDirsWatcher } from './tmpDirs';
+const session = require('telegraf/session');
+import { PdfCreator, PdfSize } from '../lib/pdf';
+import { logger } from '../logger';
+import { TmpDirsWatcher } from '../lib/tmpDirs';
 import {generate as generateId} from 'shortid';
 import * as path from 'path';
-import { processImage, ImageEntity } from './image';
+import { processImage } from '../lib/image';
+import { Scenes, OptionsStage } from './stage';
+import { Store } from './store';
 
 enum FileTypes {
     Photo = 'photo',
@@ -15,17 +18,21 @@ enum FileTypes {
 export class CreatePdfBot {
     private static CREATE_LABEL: string = '✅ Create';
     private static PDF_NAME = 'images.pdf';
+    
     private bot: any;
-    private media: Map<string, Promise<ImageEntity>[]>; // store info about processing images per user
+    private store: Store;
     private pdfCreator: PdfCreator;
     private dirsWatcher: TmpDirsWatcher;
 
-    constructor(token: string) {
-        this.media = new Map();
+    constructor(token: string, store: Store, stage: OptionsStage) {
+        this.store = store;
         this.pdfCreator = new PdfCreator(CreatePdfBot.PDF_NAME);
         this.dirsWatcher = new TmpDirsWatcher();
 
         this.bot = new TelegramBot(token);
+        this.bot.use(session());
+        this.bot.use(stage.getMiddleware());
+
         this.bot.on(FileTypes.Photo, this.handleFileMsg(FileTypes.Photo));
         this.bot.on(FileTypes.Document, this.handleFileMsg(FileTypes.Document));
         this.bot.command('start', this.handleStartCommand);
@@ -56,11 +63,7 @@ export class CreatePdfBot {
         const filepath = path.join(dir, generateId());
 
         const promiseImage = processImage(link, filepath);
-        if (this.media.has(id)) {
-            this.media.get(id)!.push(promiseImage);
-        } else {
-            this.media.set(id, [promiseImage]);
-        }
+        this.store.getUser(id).media.push(promiseImage);
 
         return ctx.reply('a', Markup
             .keyboard([[CreatePdfBot.CREATE_LABEL]])
@@ -85,18 +88,15 @@ export class CreatePdfBot {
 
     private handleEndCommand = async (ctx: any) => {
         const id = this.getUserId(ctx);
-        if (this.media.has(id)) {
-            const images = await Promise.all(this.media.get(id)!);
-            const pdf = await this.pdfCreator.create(PdfSize.A4, this.dirsWatcher.getIdTmpDir(id), images);
-            ctx.replyWithDocument({source: pdf, filename: CreatePdfBot.PDF_NAME});
-        } else {
-            logger.error(`No media member for id ${id}.`, this.media);
-        }
+        const media = this.store.getUser(id).media;
+        const images = await Promise.all(media);
+        const pdf = await this.pdfCreator.create(PdfSize.A4, this.dirsWatcher.getIdTmpDir(id), images);
+        ctx.replyWithDocument({source: pdf, filename: CreatePdfBot.PDF_NAME});
         this.clean(id);
     }
 
     private handleStartCommand = (ctx: any) => {
-        return ctx.reply(this.showHelp());
+        return ctx.scene.enter(Scenes.PdfSize);
     }
 
     private handleHelpCommand = (ctx: any) => {
@@ -104,7 +104,7 @@ export class CreatePdfBot {
     }
 
     private clean(id: string) {
-        this.media.delete(id);
+        this.store.deleteUser(id);
         this.dirsWatcher.clean(id);
     }
 
