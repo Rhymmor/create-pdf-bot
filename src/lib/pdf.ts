@@ -1,9 +1,9 @@
 import * as path from 'path';
 import * as PdfKit from 'pdfkit';
 import * as fs from 'fs';
-import { logger } from './logger';
+import { logger } from '../logger';
 import { ImageEntity } from './image';
-import { UseString, maxBy } from './utils';
+import { UseString, maxBy } from '../utils';
 
 export enum PdfSize {
     A4 = "A4",

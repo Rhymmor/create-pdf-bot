@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as rimraf from 'rimraf';
-import { logger } from './logger';
+import { logger } from '../logger';
 
 export class TmpDirsWatcher {
     private activeIds: Set<string>;

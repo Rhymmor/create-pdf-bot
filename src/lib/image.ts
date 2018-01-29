@@ -1,4 +1,4 @@
-import { downloadToFile } from "./utils";
+import { downloadToFile } from "../utils";
 import * as sizeOf from 'image-size';
 
 export interface ImageEntity {
