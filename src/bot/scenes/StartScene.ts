@@ -18,7 +18,7 @@ export class StartScene extends CommonScene<StartButtons> {
 
     protected onEnter(ctx: any) {
         return ctx.reply(
-            this.text || `Click '${StartButtons.Start}' to begin pdf creating`,
+            this.text || `Click '${StartButtons.Start}' to begin pdf creation`,
             Markup
                 .keyboard([buttons])
                 .oneTime()
