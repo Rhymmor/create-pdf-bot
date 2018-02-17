@@ -22,7 +22,7 @@ export class CreatePdfScene extends CommonScene<string> {
         const media = this.getMedia(id);
         const images = await Promise.all(media);
         const pdf = await this.pdfCreator.create(PdfSize.A4, this.dirsWatcher.getIdTmpDir(id), images);
-        ctx.replyWithDocument({source: pdf, filename: CreatePdfScene.PDF_NAME});
+        await ctx.replyWithDocument({source: pdf, filename: CreatePdfScene.PDF_NAME});
         this.clean(id);
         return ctx.scene.enter(Scenes.StartAgain);
     }
@@ -33,7 +33,7 @@ export class CreatePdfScene extends CommonScene<string> {
 
     private clean(id: string) {
         this.store.deleteUser(id);
-        this.dirsWatcher.clean(id);
+        return this.dirsWatcher.clean(id);
     }
 
     protected onClick(): any {}
