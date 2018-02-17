@@ -2,6 +2,8 @@ import { CreatePdfBot } from "./bot/bot";
 import { logger } from "./logger";
 import { Store } from "./bot/store";
 import { OptionsStage } from "./bot/stage";
+import { TmpDirsWatcher } from "./lib/tmpDirs";
+const TelegramBot = require('telegraf');
 
 class MainProcess {
     private static TOKEN_ENV = 'BOT_TOKEN';
@@ -14,9 +16,11 @@ class MainProcess {
             throw `Please, initialize ${MainProcess.TOKEN_ENV} environment variable`;
         }
 
+        const botApi = new TelegramBot(token);
         const store = new Store();
-        const stage = new OptionsStage(store);
-        this.bot = new CreatePdfBot(token, store, stage);
+        const dirsWatcher = new TmpDirsWatcher();
+        const stage = new OptionsStage(store, botApi.telegram, dirsWatcher);
+        this.bot = new CreatePdfBot(botApi, stage, dirsWatcher);
         this.bot.start();
         logger.info('Started bot');
     }
