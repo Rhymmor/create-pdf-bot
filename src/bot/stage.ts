@@ -3,12 +3,16 @@ import { Store } from './store';
 import { SizeScene } from './scenes/sizeScene';
 import { PdfSize } from '../lib/pdf';
 import { ImageScene } from './scenes/imageScene';
+import { TmpDirsWatcher } from '../lib/tmpDirs';
+import { ImageEntity } from '../lib/image';
 import { CreatePdfScene } from './scenes/CreatePdfScene';
 
 export enum Scenes {
     PdfSize = 'pdf-size',
     Images = 'images',
     CreatePdf = 'create-pdf',
+    Start = 'start',
+    StartAgain = 'start-again'
 }
 
 export class OptionsStage {
@@ -22,7 +26,7 @@ export class OptionsStage {
         const imageScene = new ImageScene(telegramApi, dirsWatcher, this.addMedia);
         const createPdfScene = new CreatePdfScene(dirsWatcher, store);
         this.stage = new Stage([
-            sizeScene.getScene()
+            sizeScene.getScene(),
             imageScene.getScene(),
             createPdfScene.getScene()
         ]);
@@ -31,6 +35,7 @@ export class OptionsStage {
     private addMedia = (id: string, img: Promise<ImageEntity>) => {
         this.store.getUser(id).media.push(img);
     }
+
     private setPdfSize = (id: string, size: PdfSize) => {
         this.store.getUser(id).size = size;
     }

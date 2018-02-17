@@ -1,5 +1,4 @@
 import Markup = require('telegraf/markup');
-import Scene = require('telegraf/scenes/base');
 import { Scenes } from '../stage';
 import { PdfSize } from '../../lib/pdf';
 import { CommonScene } from './commonScene';
@@ -30,12 +29,7 @@ export class SizeScene extends CommonScene<PdfSize> {
     protected onClick(size: PdfSize)  {
         return (ctx: any) => {
             this.setSize(this.getUserId(ctx), size);
-            return ctx.reply(size);
-            // return ctx.scene.enter(Scenes.Images);
+            return ctx.scene.enter(Scenes.Images);
         }
-    }
-
-    public getScene(): Scene {
-        return this.scene;
     }
 }
