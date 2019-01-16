@@ -28,7 +28,7 @@
   "homepage": "https://github.com/Rhymmor/create-pdf-bot#readme",
   "devDependencies": {
     "@types/bunyan": "^1.8.4",
-    "@types/image-size": "0.0.29",
+    "@types/image-size": "0.7.0",
     "@types/pdfkit": "^0.7.36",
     "@types/rimraf": "^2.0.2",
     "@types/shortid": "0.0.29",
