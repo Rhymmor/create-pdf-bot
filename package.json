@@ -33,7 +33,7 @@
     "@types/rimraf": "^2.0.2",
     "@types/shortid": "0.0.29",
     "ts-node": "^4.1.0",
-    "typescript": "^2.6.2"
+    "typescript": "^3.4.1"
   },
   "dependencies": {
     "axios": "^0.17.1",
