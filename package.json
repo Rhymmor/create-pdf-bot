@@ -6,7 +6,9 @@
   "scripts": {
     "compile": "tsc",
     "dev": "ts-node src/main.ts | bunyan -o short",
-    "start": "node app/main.js | bunyan -o short"
+    "start": "node app/main.js | bunyan -o short",
+    "snyk-protect": "snyk protect",
+    "prepare": "npm run snyk-protect"
   },
   "repository": {
     "type": "git",
@@ -42,6 +44,8 @@
     "pdfkit": "^0.8.3",
     "rimraf": "^2.6.2",
     "shortid": "^2.2.8",
-    "telegraf": "^3.17.5"
-  }
+    "telegraf": "^3.17.5",
+    "snyk": "^1.161.1"
+  },
+  "snyk": true
 }
