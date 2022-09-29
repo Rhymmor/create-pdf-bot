@@ -36,12 +36,12 @@
     "typescript": "^2.6.2"
   },
   "dependencies": {
-    "axios": "^0.17.1",
-    "bunyan": "^1.8.12",
+    "axios": "^0.21.3",
+    "bunyan": "^1.8.13",
     "image-size": "^0.6.2",
     "pdfkit": "^0.8.3",
     "rimraf": "^2.6.2",
     "shortid": "^2.2.8",
-    "telegraf": "^3.17.5"
+    "telegraf": "^3.18.0"
   }
 }
